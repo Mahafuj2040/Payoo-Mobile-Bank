@@ -1,0 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
+
+.outfit {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+.nav-card:hover {
+    background-color: rgba(8, 116, 242, 0.02);
+    border: 1px solid #3ff2084f;
+}
+
+.card-selected-effect {
+    background-color: rgba(8, 116, 242, 0.06);
+    border: 1px solid #0874f2;
+    transition: ease-in-out 0.1s;
+}
+
+
