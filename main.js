@@ -2,35 +2,70 @@
 const savePin = 1234;
 let Finalbalance = document.getElementById("balance");
 
+// History track function using localStorage
+function addToHistory(paymentType){
+    const history = {
+        paymentType: paymentType,
+        transactionTime: new Date().toLocaleString(),
+    }
+
+    let storedHistory = JSON.parse(localStorage.getItem("paymentHistory")) || [];
+
+    storedHistory.push(history);
+
+    localStorage.setItem("paymentHistory", JSON.stringify(storedHistory));
+
+    paymentHistory = storedHistory;
+}
+
 // Balance Update function
 function UpadateBalance(balance, calculateType) {
     let intBalance = parseInt(Finalbalance.innerText);
 
     if (calculateType === "plus") {
-        Finalbalance.innerText = intBalance + balance;
-        alert("Balance update successfully!");
-        return;
+        intBalance = intBalance + balance;
     }
     if (calculateType === "minus") {
-        Finalbalance.innerText = intBalance - balance;
-        alert("Balance update successfully!");
-        return;
+        intBalance = intBalance - balance;
     }
+
+    // UI Update
+    Finalbalance.innerText = intBalance;
+
+    // local save
+    localStorage.setItem("Finalbalance", intBalance);
+
+    alert("Balance update successfully!");
 }
+
+// Load Local Store
+// Load Local Store
+window.addEventListener("load", function () {
+    const storedBalance = localStorage.getItem("Finalbalance");
+    if (storedBalance) {
+        Finalbalance.innerText = storedBalance;
+    } else {
+        Finalbalance.innerText = "0";
+    }
+
+    // Load History from LocalStorage
+    const storedHistory = JSON.parse(localStorage.getItem("paymentHistory")) || [];
+    paymentHistory = storedHistory;
+});
+
 
 // Validation Check Function
 
 function validationCheck(checkObjects) {
     for (const obj in checkObjects) {
-        console.log(obj);
-
         // select type check
         if (obj === "SlectType") {
             const type_select = checkObjects[obj];
             if (
                 !type_select.name ||
                 type_select.name.trim() === "" ||
-                type_select.name === "Select back" || type_select.name === "Select bill"
+                type_select.name === "Select back" ||
+                type_select.name === "Select bill"
             ) {
                 alert(`Please select a ${type_select.type}!`);
                 return false;
@@ -90,6 +125,7 @@ document
 
         if (valid) {
             UpadateBalance(addAmount, "plus");
+            addToHistory("Add Money");
         }
     });
 
@@ -111,57 +147,68 @@ document
             Pin: agentPin,
         });
 
-        if(valid){
+        if (valid) {
             UpadateBalance(cashOutAmount, "minus");
+            addToHistory("Cash Out");
         }
     });
 
 // Send money events
-document
-    .getElementById("send-now-btn")
-    .addEventListener("click", function (e) {
-        e.preventDefault();
+document.getElementById("send-now-btn").addEventListener("click", function (e) {
+    e.preventDefault();
 
-        const agentNum = document.getElementById("user-account-no").value;
-        const cashOutAmount = parseInt(
-            document.getElementById("amount").value
-        );
-        const senderPin = parseInt(document.getElementById("send-money-pin").value);
+    const agentNum = document.getElementById("user-account-no").value;
+    const cashOutAmount = parseInt(document.getElementById("amount").value);
+    const senderPin = parseInt(document.getElementById("send-money-pin").value);
 
-        const valid = validationCheck({
-            AccountNo: agentNum,
-            Amount: cashOutAmount,
-            Pin: senderPin,
-        });
-
-        if(valid){
-            UpadateBalance(cashOutAmount, "minus");
-        }
+    const valid = validationCheck({
+        AccountNo: agentNum,
+        Amount: cashOutAmount,
+        Pin: senderPin,
     });
 
+    if (valid) {
+        addToHistory("Send Money");
+    }
+});
+
 // Pay Bill Events
+document.getElementById("pay-now-btn").addEventListener("click", function (e) {
+    e.preventDefault();
+    const selectToPay = document.getElementById("select-to-pay").value;
+    const billerAccountNo = document.getElementById("biller-account-no").value;
+    const billAmount = parseInt(document.getElementById("biller-amount").value);
+    const pin = parseInt(document.getElementById("biller-pin").value);
+
+    //valisation check
+    const valid = validationCheck({
+        SlectType: {
+            type: "Pay",
+            name: selectToPay,
+        },
+        AccountNo: billerAccountNo,
+        Amount: billAmount,
+        Pin: pin,
+    });
+
+    if (valid) {
+        UpadateBalance(billAmount, "minus");
+        addToHistory("Pay Bill");
+    }
+});
+
+// Get Bonus
 document
-    .getElementById("pay-now-btn")
+    .getElementById("get-cupon-btn")
     .addEventListener("click", function (e) {
         e.preventDefault();
-        const selectToPay = document.getElementById("select-to-pay").value;
-        const billerAccountNo = document.getElementById("biller-account-no").value;
-        const billAmount = parseInt(document.getElementById("biller-amount").value);
-        const pin = parseInt(document.getElementById("biller-pin").value);
+        let cuponId = parseInt(document.getElementById("cupon-field").value);
 
-        //valisation check
-        const valid = validationCheck({
-            SlectType: {
-                type: "Pay",
-                name: selectToPay,
-            },
-            AccountNo: billerAccountNo,
-            Amount: billAmount,
-            Pin: pin,
-        });
-
-        if (valid) {
-            UpadateBalance(billAmount, "minus");
+        if (cuponId !== 1234) {
+            alert("This is not a valid cupon.");
+        } else {
+            UpadateBalance(100, "plus");
+            addToHistory("Cupon Apply");
         }
     });
 
@@ -233,12 +280,37 @@ getBonusBtn.addEventListener("click", function () {
 payBillBtn.addEventListener("click", function () {
     showSection(payBill, payBillBtn);
 });
+
 transactionsBtn.addEventListener("click", function () {
     showSection(transactions, transactionsBtn);
+    showTransactions();
 });
+
+// Transaction view function
+function showTransactions() {
+    const container = document.getElementById("transaction-container");
+    container.innerHTML = "";
+
+    const storedHistory = JSON.parse(localStorage.getItem("paymentHistory")) || [];
+
+    for (const transaction of storedHistory) {
+        const div = document.createElement("div");
+        div.innerHTML = `
+            <div class="transction-card flex justify-center gap-10 items-center bg-white rounded p-5 mb-5 shadow-sm text-center">
+                <div>
+                    <h3 class="font-bold">${transaction.paymentType}</h3>
+                    <p>${transaction.transactionTime}</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(div.firstElementChild);
+    }
+}
+// even load call upper function
+window.addEventListener("load", showTransactions);
 
 
 // LogOut
-document.getElementById("log-out").addEventListener("click", function(){
-    window.location.href = "./index.html"
-})
+document.getElementById("log-out").addEventListener("click", function () {
+    window.location.href = "./index.html";
+});
